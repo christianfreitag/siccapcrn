@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "analysts" ADD COLUMN     "cpf" TEXT NOT NULL DEFAULT E'15596682705';

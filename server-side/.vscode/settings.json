@@ -1,0 +1,23 @@
+{
+  "sqltools.connections": [
+    {
+      "previewLimit": 50,
+      "server": "localhost",
+      "port": 5432,
+      "driver": "PostgreSQL",
+      "name": "Test GAC",
+      "username": "postgres",
+      "database": "glab",
+      "password": "lcja3298x"
+    }
+  ],
+  "editor.formatOnSave": true,
+  "editor.formatOnType": false,
+  "editor.formatOnPaste": true,
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "workbench.colorCustomizations": {
+    "activityBar.background": "#142963",
+    "titleBar.activeBackground": "#1C3A8B",
+    "titleBar.activeForeground": "#FAFBFE"
+  }
+}

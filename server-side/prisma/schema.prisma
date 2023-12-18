@@ -1,0 +1,205 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+//Obs: Após criar os models basta executar o comando: 📓
+//>  'yarn prisma migrate dev' ▶️
+//... que ele gera os campos e tabelas e faz as alterações necessarias no banco de dados.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+//Controle de usuarios ☕
+model User {
+  id         String    @id @default(uuid())
+  name       String
+  email      String    @unique
+  cpf        String    @unique
+  password   String
+  user_level Int //1 - Usuario Normal/ 2 - Suporte
+  created_at DateTime  @default(now())
+  Case       Case[]
+  Analyst    Analyst[]
+
+  Report   Report[]
+  Vacation Vacation[]
+  Requests Requests[]
+
+  CaseMovement CaseMovement[]
+
+  @@map("users")
+  ReportMovement ReportMovement[]
+}
+
+//Controle de casos ☕// PRECISO DEIXAR UNIQUE OS NUMEROS DO CASO JUNTO AO USUARIO -> ASSIM O NOME NÂO VAI SER UNICO QUANDO SE TRATA BDE OUTRO USUARIO
+model Case {
+  id             String  @id @default(uuid())
+  num_caso_lab   String  @unique
+  num_sei        String  @unique
+  operation_name String?
+  ip_number      String?
+  demandant_unit String?
+  object         String?
+  //expiresIn      Int     @default(10)
+
+  //status     Int        @default(0) //comments
+  //step       Int        @default(0)
+  step_dates  DateTime[]
+  end_date    DateTime?
+  expiredDate DateTime?
+  updated_at  DateTime   @updatedAt
+  create_at   DateTime   @default(now())
+  created_by  String
+  user        User       @relation(fields: [created_by], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  Report      Report[]
+  Requests    Requests[]
+
+  CaseMovement CaseMovement[]
+
+  @@map("cases")
+}
+
+model CaseMovement {
+  id          String   @id @default(uuid())
+  case_id     String
+  label       String
+  date        DateTime
+  expire_date DateTime
+  observation String?
+  created_by  String
+  edited_at   DateTime @default(now())
+  case        Case     @relation(fields: [case_id], references: [id])
+
+  user User @relation(fields: [created_by], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@map("caseMovements")
+}
+
+model ReportMovement {
+  id          String   @id @default(uuid())
+  report_id   String
+  label       String
+  date        DateTime
+  observation String?
+  created_by  String
+  edited_at   DateTime @default(now())
+  case        Report   @relation(fields: [report_id], references: [id])
+  user        User     @relation(fields: [created_by], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@map("reportMovements")
+}
+
+//Controle de relatorios e afastamento ☕
+model Analyst {
+  id                    String     @id @default(uuid())
+  name                  String
+  cpf                   String     
+  email                 String?    @unique
+  whatsapp              String?
+  status                Int        @default(0) //0 - Disponivel // 1 - Afastadio // 2 - Trabalho de Analise // 3 - afastado mas em analise ✔️
+  pending_vacation_days Int //Dias pendentes/restantes de ferias não utilizadas  ✔️
+  created_by            String
+  user                  User       @relation(fields: [created_by], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  create_at             DateTime   @default(now())
+  Report                Report[]
+  vacation              Vacation[]
+  password              String?
+
+  @@map("analysts")
+}
+
+
+
+//Controle de relatorios ☕
+model Report {
+  id         String     @id @default(uuid())
+  num_report String     @unique
+  type       Int
+  case_id    String?
+  case       Case?      @relation(fields: [case_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  created_by String
+  status     Int        @default(0)
+  step_dates Json[]
+  file       String?
+  create_at  DateTime   @default(now())
+  analyst_id String?
+  review_id  String? 
+  analyst    Analyst?   @relation(fields: [analyst_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  user       User       @relation(fields: [created_by], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@map("reports")
+  ReportMovement ReportMovement[]
+}
+
+//Controle de afastamento ☕
+model Vacation {
+  id               String    @id @default(uuid())
+  type             Int
+  alterpendentdays Boolean
+  date_sche_ini    DateTime
+  date_sche_end    DateTime
+  date_ini         DateTime?
+  date_end         DateTime?
+  analyst_id       String
+  created_by       String
+  create_at        DateTime  @default(now())
+  user             User      @relation(fields: [created_by], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  analyst          Analyst   @relation(fields: [analyst_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@map("vacations")
+}
+
+model Requests {
+  id          String   @id @default(uuid())
+  num_request String   @unique
+  history     String?
+  id_case     String
+  created_by  String
+  create_at   DateTime @default(now())
+  user        User     @relation(fields: [created_by], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  caso        Case     @relation(fields: [id_case], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  Investigated_requests Investigated_requests[]
+
+  @@map("requests")
+}
+
+model Investigated {
+  id   String @id @default(uuid())
+  name String
+  cpf  String @unique
+
+  Investigated_requests Investigated_requests[]
+
+  @@map("investigated")
+}
+
+model Investigated_requests {
+  id              String @id @default(uuid())
+  id_request      String
+  id_investigated String
+
+  request      Requests     @relation(fields: [id_request], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  investigated Investigated @relation(fields: [id_investigated], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@unique([id_request, id_investigated], map: "id_request_and_id_investigated_unique_constraint")
+}
+
+//Estudar 📕
+//  - adonisjs
+//  - nestjs
+//  - Express
+//  - Containers
+//  - https://www.youtube.com/watch?v=2iS3SHwft0k
+//  - https://www.youtube.com/watch?v=nuLTwqPNq-w
+//  - Hooks: https://www.youtube.com/watch?v=NmU2nNehNNY
+//  - https://docs.nestjs.com/recipes/prisma ⭐
+
+// Segurança
+//  - https://owasp.org/Top10/A03_2021-Injection/
+//yarn add prisma --dev /yarn prisma init /yarn add @prisma/client
